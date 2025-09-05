@@ -1,0 +1,161 @@
+jQuery(document).ready(function(){
+    $("#ModalMensaje").modal({
+                        show:true,
+                        backdrop: 'static',
+                        keyboard: true
+                    });
+
+    setTimeout(() => {
+        $('#ModalMensaje').modal('hide');
+    }, 5000);
+
+    $("#ModalMensaje").on('hidden.bs.modal', function(){
+        $("#txtFolio").focus();
+    });
+
+    $(".mayusculas").blur(function(){
+        $(this).val($(this).val().toUpperCase());
+    });
+
+    $(".AyudaFolio").click(function(){
+        $('#ModalAyudaFolio').modal('show');
+    });
+
+    $(".AyudaCurp").click(function(){
+        $('#ModalAyudaCurp').modal('show');
+    });
+
+    $('#ModalLicenciaVerificada, #ModalLicenciaNoVerificada, #ModalInformacion').on('hidden.bs.modal', function () {
+        $("#txtFolio").val('');
+        $("#txtCURP").val('');
+        $("#txtFolio").focus();
+
+        $(".respuesta-texto").html('').removeClass("text-success");
+        $(".clase-licencia").html('');
+
+        $(".folio, .tipo, .vigencia, .expedicion, .vencimiento, .oficina, .municipio, .nombre, .curp, .hash").html("");
+
+        $(".es-verificada").removeClass("bg-success");
+        $(".texto-verificada").html('');
+            $(".css_vencida").removeClass("bg-danger").css("color","#000");
+
+        $("#pFolio, #pCURP").html(''); 
+    }); 
+  
+  $("#form-verificar").bootstrapValidator({
+    // excluded: [':disabled'],
+    button: {
+        selector: '[type="submit"]',
+    },
+    message: 'Este valor es requerido',
+    live: 'enabled',
+    // feedbackIcons: {
+    //     valid: 'glyphicon glyphicon-ok',
+    //     invalid: 'glyphicon glyphicon-remove',
+    //     validating: 'glyphicon glyphicon-refresh'
+    // },
+    fields: {
+        txtFolio: {
+            validators: {
+                notEmpty: { message: 'Ingrese el Folio registrado en la Licencia' }
+            }
+        },
+        txtCURP: {
+            validators: {
+                notEmpty: { message: 'Ingrese el RFC o la CURP registrada en la Licencia' },
+                stringLength: {
+                    enabled: true,
+                    min: 10,
+                    max: 18,
+                    message: 'Ingrese los primeros 10 caracteres del RFC o la CURP'
+                }
+            }
+        }
+    }, //fin de Campos
+    submitHandler: function (validator, form, submitButton) {        
+          $.ajax({
+              url: searchRoute,
+              data: {"txtFolio":$("#txtFolio").val(), "txtCURP": $("#txtCURP").val(), "hOperacion":"Buscar"},
+              type: 'POST',
+              dataType: 'JSON',
+              beforeSend: function(){
+                  $("#btnValidar").attr("disabled", "disabled");
+                  $(".loading").show();
+              },
+              success: function(respuesta) {
+                if (respuesta.obtenido) {
+                  var l = respuesta.datos;
+                  var c = respuesta.colores;
+
+                  $(".color1").css("background-color",c.C1);
+                  $(".color2").css("background-color",c.C2);
+                  $(".color3").css("background-color",c.C3);
+                  $(".color4").css("background-color",c.C4);
+                  $(".color5").css("background-color",c.C5);
+                  $(".color6").css("background-color",c.C6);
+
+                  $(".clase-licencia").html(l.CLASE_LICENCIA);
+
+                  $(".fotografia").attr("src",l.FOTOGRAFIA);
+
+                  if (l.ES_VERIFICADA === 'VERIFICADA'){
+                      $(".es-verificada").addClass("bg-success");
+                      $(".texto-verificada").html('<i class="fa fa-check-circle"></i> LICENCIA VERIFICADA');
+                  } else {
+                      $(".es-verificada").addClass("bg-danger");
+                      $(".css_vencida").addClass("bg-danger").css("color","#FFF");
+                      $(".texto-verificada").html('<i class="fa fa-check-circle"></i> LICENCIA VENCIDA').css("color","#FFF");
+                  }
+
+                  $(".folio").html(l.FOLIO);
+                  $(".curp").html(l.CURP);
+                  $(".tipo").html(l.TIPO_LICENCIA);
+                  $(".vigencia").html(l.VIGENCIA);
+                  $(".expedicion").html(l.EXPEDICION);
+                  $(".vencimiento").html(l.VENCIMIENTO);
+                  $(".oficina").html(l.OFICINA_EXPEDICION);
+                  $(".municipio").html(l.MUNICIPIO);
+                  $(".nombre").html(l.NOMBRE_COMPLETO);
+                  $(".hash").html(respuesta.hash);
+
+                    $("#ModalLicenciaVerificada").modal({
+                        show:true,
+                        backdrop: 'static',
+                        keyboard: true
+                    });
+
+                  $("#btnValidar").removeAttr("disabled");
+                  $('.loading').hide();
+                } else {
+                  $("#pFolio").html($("#txtFolio").val());
+                  $("#pCURP").html($("#txtCURP").val());
+
+                  $("#ModalLicenciaNoVerificada").modal({
+                                    show:true,
+                                    backdrop: 'static',
+                                    keyboard: true
+                                });
+
+                  $("#btnValidar").removeAttr("disabled");
+                  $('.loading').hide();
+                }
+              },
+              error: function(jqXHR, status, error){
+                  console.log(jqXHR);
+                  console.log(status);
+                  console.log(error);
+
+                  $("#btnValidar").removeAttr("disabled");
+                  $('.loading').hide();
+
+                  if (error=='Internal Server Error') {
+                    console.warn("Error de Conexion");
+                  }
+              }
+         });//fin de Ajax
+           
+    }//fin de submitHandler
+}); //fin de Validator
+
+
+}); //cierra Jquery
